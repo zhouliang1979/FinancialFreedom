@@ -2,8 +2,7 @@
 """
     这是一个简单的均线策略， 当行情突破 均线+bandwidth之后， 上突破做多， 下突破做空
     反向突破时则离场
-    运行指令：python demo.py --category rb1801 --start 20170823 --end 20170901 --barsize 1800 --ma
-    35 --bandwidth 20 --tickprice 1
+    运行指令：python demo.py --category rb1801 --start 20170823 --end 20170901 --barsize 1800 --ma 35 --bandwidth 20 --tickprice 1
 
     数据文件名必须是 合约名.csv, 比如rb1801.csv
 """
