@@ -43,21 +43,22 @@ def get_day_tick(contract, interval, merge=False):
         return dflist
 
 
-def enterobservation(barlist, tickbuff, args):
-    prevbuff = np.array(tickbuff[-300:])
-    #maxvalue = barlist[-1][1] + 5*args.tickprice 
-    #minvalue = barlist[-1][2] - 5*args.tickprice 
-    maxvalue = np.mean(prevbuff)+3*np.std(prevbuff)
-    minvalue = np.mean(prevbuff)-3*np.std(prevbuff)
+def enterobservation(barlist, tickbuff, nindex, pindex, args):
+    prevbuff = np.array(tickbuff[-1200:])
+    maxtar = max([barlist[-1][0], barlist[-1][-1]])
+    mintar = min([barlist[-1][0], barlist[-1][-1]])
+    maxvalue = maxtar + 15
+    minvalue = mintar - 15
+
     if tickbuff[-1] > maxvalue:
         if sum(prevbuff < maxvalue-1*args.tickprice) > 0 \
                 and tickbuff[-1] <= maxvalue+2*args.tickprice:
-            return LONG
+            return SHORT
 
     if tickbuff[-1] < minvalue:
         if sum(prevbuff > minvalue+1*args.tickprice) > 0 \
                 and tickbuff[-1] >= minvalue-2*args.tickprice:
-            return SHORT
+            return LONG
     return None
 
 
@@ -66,16 +67,10 @@ def earn(price1, price2, dire):
     return res
 
 
-def leaveobservation(dire, barlist, tickbuff, tradebuff, i, lastenter,  args):
+def leaveobservation(dire, barlist, tickbuff, tradebuff, args, reverse=False):
     tradeprice = tradebuff[0]
-    r=600.0/(i-lastenter) if i-lastenter>600 else 1
-    # 获利离场
-    if earn(tickbuff[-1], tradeprice, dire) >= 5*r*args.tickprice:
+    if earn(tickbuff[-1], tradeprice, dire) <= -10*args.tickprice:
         return True
-    # 止损
-    if earn(tickbuff[-1], tradeprice, dire) <= -5*r*args.tickprice:
-        return True
-        
     return False
 
 if __name__ == "__main__":
@@ -116,6 +111,7 @@ if __name__ == "__main__":
     global profit
     days = 0
     profit = 0
+    bestprice_ = None
     price_ = dire_ = None
     barlist = []        # 记录分钟级别bar的开高低收
     barclose = []       # 记录分钟级别bar的收盘价
@@ -136,8 +132,8 @@ if __name__ == "__main__":
         if beginday:
             barlist.append((data.price[0], max(data.price),
                             min(data.price), data.price[len(data)-1]))
-            maxtar = barlist[-1][1] + 5*args.tickprice 
-            mintar = barlist[-1][2] - 5*args.tickprice 
+            maxtar = max([barlist[-1][0], barlist[-1][-1]]) + 15
+            mintar = min([barlist[-1][0], barlist[-1][-1]]) - 15
             beginday = False
             continue
         longmarks = []      # 记录做多时点
@@ -156,6 +152,7 @@ if __name__ == "__main__":
         print barlist[-1], maxtar, mintar
         daylen = len(data)
         lastenter = None
+        reverse = False
         for i in range(len(data)):
             item = data.iloc[i]
             tickbuff.append(item.price)
@@ -165,23 +162,24 @@ if __name__ == "__main__":
             if dire_ is not None:
                 tradebuff.append(item.price)
 
-            # 30分钟内开始冷启动
-            if len(tickbuff) < 600:
+            # 开始冷启动
+            if len(tickbuff) < 1800:
                 continue
         
             # 已有持仓后，不在根据反方向信号离场， 而是根据leave逻辑
             # 时刻准备离场
             if dire_ is not None:
                 # print "flagenter: ", flagenter
-                flaglea = leaveobservation(dire_, barlist, tickbuff, tradebuff, i, lastenter, args)
+                flaglea = leaveobservation(dire_, barlist,
+                                           tickbuff, tradebuff, args, reverse)
                 if flaglea or i >= len(data)-600:
                     if dire_ == LONG:
                         oneprofit = item.bid_price1-price_
                         profit += oneprofit
-                        if flaglea:
-                            print "GOOD LONG bid price profit: ", item.bid_price1, price_, oneprofit, profit
-                        else:
+                        if i >= len(data)-600:
                             print "BAD LONG bid price profit: ", item.bid_price1, price_, oneprofit, profit
+                        else:
+                            print "GOOD LONG bid price profit: ", item.bid_price1, price_, oneprofit, profit
                         price_ = item.bid_price1
                         dire_ = None
                         closemarks.append((i, price_))
@@ -190,14 +188,17 @@ if __name__ == "__main__":
                         allowopen = False
                         prevopen = i
                         prevdire = LONG
+                        reverse = True if oneprofit < -0.01 else False
+                        # if not reverse:
+                        #     break
                         continue
                     else:
                         oneprofit = price_-item.ask_price1
                         profit += oneprofit
-                        if flaglea:
-                            print "GOOD SHORT price ask profit: ",price_, item.ask_price1, oneprofit, profit
-                        else:
+                        if i >= len(data)-600:
                             print "BAD SHORT price ask profit: ",price_, item.ask_price1, oneprofit, profit
+                        else:
+                            print "GOOD SHORT price ask profit: ",price_, item.ask_price1, oneprofit, profit
                         price_ = item.ask_price1
                         dire_ = None
                         closemarks.append((i, price_))
@@ -206,6 +207,9 @@ if __name__ == "__main__":
                         allowopen = False
                         prevopen = i
                         prevdire = SHORT
+                        reverse = True if oneprofit < -0.01 else False
+                        # if not reverse:
+                        #     break
                         continue
             
             # 最后半小时， 不再开仓
@@ -213,22 +217,22 @@ if __name__ == "__main__":
                 continue
 
             if dire_ is None:
-                flagenter = enterobservation(barlist, tickbuff, args)
+                flagenter = enterobservation(barlist, tickbuff, i, lastenter, args)
 
                 if flagenter == LONG: 
                     price_ = item.price
+                    bestprice_ = item.price
                     dire_ = LONG
                     longmarks.append((i, price_))
-                    tradebuff.append(price_)
-                    lastenter = i
+                    tradebuff.append(item.price)
                     daytime += 1
                     continue
                 elif flagenter == SHORT:
                     price_ = item.price
+                    bestprice_ = item.price
                     dire_ = SHORT
                     shortmarks.append((i, price_))
-                    tradebuff.append(price_)
-                    lastenter = i
+                    tradebuff.append(item.price)
                     daytime += 1
                     continue
                 else:
@@ -238,8 +242,6 @@ if __name__ == "__main__":
         # 更新日bar的开高低收
         barlist.append((data.price[0], max(data.price),
                         min(data.price), data.price[len(data)-1]))
-        maxtar = barlist[-1][1] + 5*args.tickprice 
-        mintar = barlist[-1][2] - 5*args.tickprice 
         import matplotlib
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
