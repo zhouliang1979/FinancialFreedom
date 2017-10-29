@@ -1,0 +1,29 @@
+# --- Model settings
+
+# some basic config
+model_dir: wdl # leave empty not to save the model
+log_dir: log
+append_cols: ['leaf_cate_id', 'price_range', 'user_group_id', 'channel', 'target']
+
+model_type: 0 # valid model types: {0:wide, 1:deep, 2:wide_and_deep}
+problem_type: 1 # valid problem types: {0: classification, 1:regression}
+
+# common hyper-params
+n_classes: 2
+max_iter: 500
+base_lr: 0.01
+lr_policy: 'step' # valid lr policy:{'fixed', 'step'}
+step_size: 100
+# L1 constraint coefficient
+alpha: 0.0 #default:0
+# L2 constraint coefficient
+beta: 0.5 #default:0
+
+evaluate_interval: None #default:None
+
+# Deep model hyper-params
+# number of hidden units in deep model(array-like)
+hidden_units: [1024, 128]
+# dimension for categorical feature embedding
+embedding_dimension: 16
+dropout: 0.5

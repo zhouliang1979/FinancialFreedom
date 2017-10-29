@@ -1,0 +1,59 @@
+# define train and test files
+#train_file: /home/xiaowen/cate_gmv/dm_c2b_v3_cate_deal_train_set.no_head.all 
+#evaluate_file: /home/xiaowen/cate_gmv/dm_c2b_v3_cate_deal_test_set.no_head.all 
+#test_file: /home/xiaowen/cate_gmv/dm_c2b_v3_cate_deal_test_set.no_head.all 
+
+train_file: train_set
+evaluate_file: evaluate_set
+test_file: test_set
+
+# --- Features
+target_column: target
+
+binary_columns: []
+
+multi_category_columns: [cate_level1_id, cate_level2_id, leaf_cate_id, price_range, user_group_id, channel]
+
+continuous_columns:
+- f0
+- f1
+- f2
+- f3
+- f4
+- f5
+- f6
+- f7
+- f8
+- f9
+- f10
+- f11
+- f12
+- f13
+- f14
+- f15
+- f16
+- f17
+- f18
+- f19
+- f20
+- f21
+- f22
+- f23
+- f24
+- f25
+- f26
+- f27
+- f28
+- f29
+- f30
+- f31
+- f32
+- f33
+- f34
+- f35  
+
+# feature crossing
+crossed_columns:
+
+# continuous feature bucketizing
+# bucketized_columns: {'weibo_followers_count':[1000,10000,100000,500000,1000000]}
