@@ -73,7 +73,7 @@ def leaveobservation(dire, barlist, tickbuff, tradebuff, i, lastenter,  args):
     if earn(tickbuff[-1], tradeprice, dire) >= 5*r*args.tickprice:
         return True
     # 止损
-    if earn(tickbuff[-1], tradeprice, dire) <= -6*r*args.tickprice:
+    if earn(tickbuff[-1], tradeprice, dire) <= -5*r*args.tickprice:
         return True
         
     return False
@@ -117,6 +117,7 @@ if __name__ == "__main__":
     days = 0
     profit = 0
     price_ = dire_ = None
+    fakedire_ = None
     barlist = []        # 记录分钟级别bar的开高低收
     barclose = []       # 记录分钟级别bar的收盘价
     tradebuff = []      # 记录开仓后所有的tick数据
